@@ -6,60 +6,72 @@ function App() {
   const [response, setResponse] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Enhanced markdown parser with better formatting
+  // Enhanced markdown parser that recognizes specific AI response patterns
   const parseMarkdown = (text) => {
     if (!text) return ''
     
     let html = text
-      // Convert line breaks to proper spacing first
+      // Convert line breaks first
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
       
-      // Headers with proper hierarchy
-      .replace(/^### \*\*(.+?)\*\*$/gm, '<div class="subsection-header">$1</div>')
-      .replace(/^### (.+?)$/gm, '<div class="subsection-header">$1</div>')
-      .replace(/^## \*\*(.+?)\*\*$/gm, '<div class="section-header">$1</div>')
-      .replace(/^## (.+?)$/gm, '<div class="section-header">$1</div>')
-      .replace(/^# \*\*(.+?)\*\*$/gm, '<div class="main-header">$1</div>')
+      // Header hierarchy (maintain order - most specific first)
+      .replace(/^#### (.+?)$/gm, '<div class="subsection-header">$1</div>')
+      .replace(/^### (.+?)$/gm, '<div class="section-header">$1</div>')
+      .replace(/^## (.+?)$/gm, '<div class="main-header">$1</div>')
       .replace(/^# (.+?)$/gm, '<div class="main-header">$1</div>')
       
-      // Course information blocks
-      .replace(/^(\*\*[^*]+\*\*)\s*\(([^)]+)\):\s*(.+)$/gm, 
-        '<div class="course-card"><h4>$1 ($2)</h4><p>$3</p></div>')
+      // Schedule headers (Fall Semester, Spring Semester, etc.)
+      .replace(/^\*\*([A-Z][^*:]*(?:Semester|Schedule|Plan)):\*\*$/gm, '<div class="schedule-header">$1</div>')
       
-      // Bold and italic text
+      // Course title blocks (Course Name (CODE):)
+      .replace(/^\*\s+\*\*([^*]+)\s*(?:\([^)]+\))?\s*:\*\*$/gm, '<div class="course-title">$1</div>')
+      
+      // Advice sections
+      .replace(/\*My Advice:\*/g, '<div class="advice-label">💡 My Advice:</div><div class="advice-content">')
+      .replace(/\*Action Item:\*/g, '<div class="action-label">📋 Action Item:</div><div class="action-content">')
+      .replace(/\*Note:\*/g, '<div class="note-label">📝 Note:</div><div class="note-content">')
+      
+      // Highlight ratings data
+      .replace(/\*\*([^*]*(?:quality|difficulty|workload|instructor)[^*]*[0-9.]+\/4\.0[^*]*)\*\*/g, '<span class="rating-highlight">$1</span>')
+      
+      // Other bold text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      
+      // Italic text
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       
-      // Lists - handle both bullets and numbers
-      .replace(/^[\s]*[-*+]\s+(.+)$/gm, '<li class="bullet-point">$1</li>')
-      .replace(/^[\s]*\d+\.\s+(.+)$/gm, '<li class="numbered-item">$1</li>')
+      // Lists
+      .replace(/^[\s]*\*[\s]+(.+)$/gm, '<li class="bullet-point">$1</li>')
+      .replace(/^[\s]*\d+\.[\s]+(.+)$/gm, '<li class="numbered-item">$1</li>')
       
-      // Paragraphs - split by double newlines
+      // Split into sections and wrap
       .split(/\n\s*\n/)
-      .map(para => {
-        para = para.trim()
-        if (!para) return ''
+      .map(section => {
+        section = section.trim()
+        if (!section) return ''
         
-        // Check if it's a list
-        if (para.includes('<li class="bullet-point">')) {
-          return `<div class="bullet-list">${para}</div>`
+        // Check for different section types
+        if (section.includes('<li class="numbered-item">')) {
+          return `<div class="numbered-list">${section}</div>`
         }
-        if (para.includes('<li class="numbered-item">')) {
-          return `<div class="numbered-list">${para}</div>`
+        if (section.includes('<li class="bullet-point">')) {
+          return `<div class="bullet-list">${section}</div>`
+        }
+        if (section.includes('<div class="advice-content">') || 
+            section.includes('<div class="action-content">') || 
+            section.includes('<div class="note-content">')) {
+          return section + '</div>' // Close the content div
+        }
+        if (section.includes('<div class="')) {
+          return section
         }
         
-        // Check if it's already formatted (headers, course cards, etc.)
-        if (para.includes('<div class="') || para.includes('<h')) {
-          return para
-        }
-        
-        // Regular paragraph
-        return `<p>${para.replace(/\n/g, '<br>')}</p>`
+        return `<p>${section.replace(/\n/g, '<br>')}</p>`
       })
       .join('')
       
-      // Clean up any remaining single newlines in non-pre content
+      // Clean up
       .replace(/(?<!<br>)\n(?!<)/g, ' ')
     
     return html
