@@ -5,7 +5,6 @@ from google.genai import types
 import os
 from dotenv import load_dotenv
 
-
 #initialized this instance of the class of Flask apps
 app = Flask(__name__)
 CORS(app)#permits all sources
@@ -22,6 +21,19 @@ config = types.GenerateContentConfig(
     tools=[grounding_tool]
 )
 
+def retrievingFromPinecone():
+    pass
+
+#Workflow
+#LLM recieves the query. 
+#processes it and responds with either a tool call or a text based response (most, if not all the time, it will be a tool call)
+#if a tool call, then respond with alert of a tool call and also the parameters that we'll be passing into the function that calls the tool.
+#if a response, then just return to the frontend
+
+#defining the tool
+
+
+
 @app.route('/', methods = ['POST', 'OPTIONS'])
 def mainFunction():
     if request.method == 'OPTIONS':
@@ -36,7 +48,9 @@ def mainFunction():
         
         response = client.models.generate_content(
             model = "gemini-2.5-flash",
-            contents = "The request will be made by a student that is going to UPenn next year as a freshman. They currently have not spent much time on the course catalog and are looking to see what courses are best for next year. Do your best to provide the most comprehensive response possible by providing information on graduation requirements, freshman year requirements for the major they are taking, and for each course mentioned, search for the teacher that teaches the course and also their reputation." + user_query,
+            contents = f"""
+                
+            """,
             config = config
         )
         # For now, just echo back the query - you can add AI logic here later
@@ -46,7 +60,5 @@ def mainFunction():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-
-if __name__ == '__main__':
-    app.run(debug = True)
+# if __name__ == '__main__':
+#     app.run(debug = True)
